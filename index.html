@@ -10,13 +10,13 @@ html{scroll-behavior:smooth}
 body{background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;padding:35px 7%}
 header{display:flex;justify-content:space-between;align-items:center;margin-bottom:100px}
 .date{font-size:11px;letter-spacing:2px;color:#777}
-.logo{font-size:35px;font-weight:900;letter-spacing:7px;animation:logoMove 4s ease-in-out infinite alternate}
-.logo{display:inline-flex}
-.logo .l{display:inline-block;transform-origin:50% 100%;animation:idle 3.2s ease-in-out infinite;animation-delay:calc(var(--i)*.28s)}
-@keyframes idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-body.playing .logo .l{animation:beat .55s ease-in-out infinite alternate;animation-delay:calc(var(--i)*-.19s)}
-@keyframes beat{from{transform:translateY(0) scaleY(.8)}to{transform:translateY(-7px) scaleY(1.22)}}
-@keyframes logoMove{from{letter-spacing:7px;opacity:.65}to{letter-spacing:12px;opacity:1}}
+.logo{font-size:35px;font-weight:900;letter-spacing:7px;animation:logoMove 7s ease-in-out infinite alternate}
+@property --amp{syntax:"<length>";inherits:true;initial-value:3px}
+.logo{display:inline-flex;--amp:3px;transition:--amp 1.4s ease}
+body.playing .logo{--amp:9px}
+.logo .l{display:inline-block;animation:wave 3.2s cubic-bezier(.45,0,.55,1) infinite;animation-delay:calc(var(--i)*-.4s)}
+@keyframes wave{0%,100%{transform:translateY(0);opacity:.55}50%{transform:translateY(calc(var(--amp)*-1));opacity:1}}
+@keyframes logoMove{from{letter-spacing:7px}to{letter-spacing:11px}}
 main{max-width:900px;margin:auto}
 .section-title{font-size:12px;letter-spacing:5px;margin-bottom:35px}
 .artist-card{display:flex;align-items:center;gap:25px;padding:25px 0;border-bottom:1px solid #e8e8e8}
@@ -55,6 +55,8 @@ input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:3px;bord
 input[type=range]:disabled{cursor:default;opacity:.6}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:#111;border:0}
 input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:#111;border:0}
+#search{width:100%;border:1px solid #e8e8e8;border-radius:12px;padding:13px 18px;margin-bottom:10px;font-size:12px;letter-spacing:2px;font-family:inherit;color:#111;outline:none;transition:border-color .3s}
+#search:focus{border-color:#111}
 .empty{font-size:12px;color:#999;letter-spacing:1px;padding:20px 0}
 
 .about{border-top:1px solid #e8e8e8;margin-top:100px;padding-top:40px;margin-bottom:80px}
@@ -75,6 +77,7 @@ body{padding:25px 6%}header{margin-bottom:70px}.logo{font-size:27px}
 <main>
 <section id="artists">
   <h2 class="section-title">ARSHIA AJANKAN</h2>
+  <input id="search" type="search" placeholder="Search artists" aria-label="Search artists" autocomplete="off">
   <div id="artistList"></div>
 </section>
 <section class="about">
@@ -118,7 +121,7 @@ A.addEventListener("play",()=>document.body.classList.add("playing"));
 ["pause","ended","error"].forEach(e=>A.addEventListener(e,()=>document.body.classList.remove("playing")));
 A.addEventListener("play",()=>cur&&(cur.btn.textContent="❚❚"));
 A.addEventListener("pause",()=>cur&&!A.ended&&(cur.btn.textContent="▶"));
-A.addEventListener("ended",()=>cur&&cur.reset());
+A.addEventListener("ended",()=>{if(!cur)return;const n=cur.row.nextRow;cur.reset();n&&n.start()});
 A.addEventListener("error",()=>cur&&cur.reset());
 A.addEventListener("timeupdate",()=>{
   if(!cur||!A.duration)return;
@@ -126,6 +129,7 @@ A.addEventListener("timeupdate",()=>{
   cur.time.textContent=fmt(A.currentTime)+" / "+fmt(A.duration);
 });
 
+const chain=r=>r.forEach((x,i)=>x.nextRow=r[i+1]);
 function createTrack(t){
   const row=el("div","track");
   const info=el("div","track-info");
@@ -142,13 +146,14 @@ function createTrack(t){
   const reset=()=>{play.textContent="▶";rng.value=0;fill(rng);rng.disabled=true;time.textContent="0:00"};
   const mine=()=>cur&&cur.row===row;
 
-  play.addEventListener("click",()=>{
-    if(mine()){A.paused?A.play():A.pause();return}
+  const start=()=>{
     if(cur)cur.reset();
     cur={row,btn:play,rng,time,reset};
     rng.disabled=false;
     A.src=url(t.audio);A.play().catch(()=>reset());
-  });
+  };
+  row.start=start;
+  play.addEventListener("click",()=>{if(mine()){A.paused?A.play():A.pause();return}start()});
   const skip=d=>()=>{if(mine()&&A.duration)A.currentTime=Math.max(0,Math.min(A.duration,A.currentTime+d))};
   back.addEventListener("click",skip(-10));fwd.addEventListener("click",skip(10));
   rng.addEventListener("input",()=>{fill(rng);if(mine()&&A.duration)A.currentTime=rng.value/1000*A.duration});
@@ -164,7 +169,7 @@ function createAlbum(album){
   const btn=el("button","view-more","VIEW MORE");btn.type="button";
   head.append(txt,btn);
   const list=el("div");
-  album.tracks.forEach(t=>list.appendChild(createTrack({...t,cover:album.cover,artist:t.artist||""})));
+  const rows=album.tracks.map(t=>createTrack({...t,cover:album.cover,artist:t.artist||""}));chain(rows);rows.forEach(r=>list.appendChild(r));
   const wrap=collapse(list);            // closed by default, opens/closes independently
   bindToggle(btn,wrap,o=>{btn.textContent=o?"VIEW LESS":"VIEW MORE"});
   box.append(head,wrap);return box;
@@ -196,18 +201,23 @@ function renderArtist(artist,list){
 
   const pad=el("div","pad");
   if(!artist.singles.length&&!artist.albums.length)pad.appendChild(el("div","empty","NO TRACKS YET"));
-  artist.singles.forEach(t=>pad.appendChild(createTrack(t)));
+  const sr=artist.singles.map(t=>createTrack(t));chain(sr);sr.forEach(r=>pad.appendChild(r));
   artist.albums.forEach(a=>pad.appendChild(createAlbum(a)));
   const wrap=collapse(pad);wrap.classList.add("artist-content");
   bindToggle(btn,wrap,o=>{btn.textContent=o?"VIEW LESS":"VIEW MORE"});
   list.append(card,wrap);
+  return{name:artist.name.toLowerCase(),els:[card,wrap]};
 }
 
 (async()=>{
   const list=document.getElementById("artistList");
   const artists=merge(await Promise.all([load("library.json"),load("library.auto.json")]));
   if(!artists.length){list.appendChild(el("div","empty","LIBRARY NOT FOUND — open the site through GitHub Pages or a local server."));return}
-  artists.forEach(a=>renderArtist(a,list));
+  const items=artists.map(a=>renderArtist(a,list));
+  document.getElementById("search").addEventListener("input",e=>{
+    const q=e.target.value.trim().toLowerCase();
+    items.forEach(it=>it.els.forEach(x=>x.style.display=it.name.includes(q)?"":"none"));
+  });
 })();
 </script>
 </body>
