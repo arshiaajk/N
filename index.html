@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,6 +11,11 @@ body{background:#fff;color:#111;font-family:Arial,Helvetica,sans-serif;padding:3
 header{display:flex;justify-content:space-between;align-items:center;margin-bottom:100px}
 .date{font-size:11px;letter-spacing:2px;color:#777}
 .logo{font-size:35px;font-weight:900;letter-spacing:7px;animation:logoMove 4s ease-in-out infinite alternate}
+.logo{display:inline-flex}
+.logo .l{display:inline-block;transform-origin:50% 100%;animation:idle 3.2s ease-in-out infinite;animation-delay:calc(var(--i)*.28s)}
+@keyframes idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+body.playing .logo .l{animation:beat .55s ease-in-out infinite alternate;animation-delay:calc(var(--i)*-.19s)}
+@keyframes beat{from{transform:translateY(0) scaleY(.8)}to{transform:translateY(-7px) scaleY(1.22)}}
 @keyframes logoMove{from{letter-spacing:7px;opacity:.65}to{letter-spacing:12px;opacity:1}}
 main{max-width:900px;margin:auto}
 .section-title{font-size:12px;letter-spacing:5px;margin-bottom:35px}
@@ -63,11 +67,11 @@ body{padding:25px 6%}header{margin-bottom:70px}.logo{font-size:27px}
 .track{flex-wrap:wrap;gap:12px}.cover{width:72px;height:72px}.track-info{flex:1 1 calc(100% - 90px)}
 .ctrl{order:3;width:100%;justify-content:center}.time{min-width:70px}
 }
-@media(prefers-reduced-motion:reduce){.collapse,.chev,.logo{transition:none;animation:none}}
+@media(prefers-reduced-motion:reduce){.logo .l{animation:none!important}.collapse,.chev,.logo{transition:none;animation:none}}
 </style>
 </head>
 <body>
-<header><div class="date" id="date"></div><div class="logo">ARSX</div></header>
+<header><div class="date" id="date"></div><div class="logo" aria-label="ARSX"><span class="l" style="--i:0" aria-hidden="true">A</span><span class="l" style="--i:1" aria-hidden="true">R</span><span class="l" style="--i:2" aria-hidden="true">S</span><span class="l" style="--i:3" aria-hidden="true">X</span></div></header>
 <main>
 <section id="artists">
   <h2 class="section-title">ARSHIA AJANKAN</h2>
@@ -110,6 +114,8 @@ function bindToggle(btn,wrap,onChange){
 const A=new Audio();A.preload="none";
 let cur=null;                           // {row,btn,rng,time,reset}
 
+A.addEventListener("play",()=>document.body.classList.add("playing"));
+["pause","ended","error"].forEach(e=>A.addEventListener(e,()=>document.body.classList.remove("playing")));
 A.addEventListener("play",()=>cur&&(cur.btn.textContent="❚❚"));
 A.addEventListener("pause",()=>cur&&!A.ended&&(cur.btn.textContent="▶"));
 A.addEventListener("ended",()=>cur&&cur.reset());
