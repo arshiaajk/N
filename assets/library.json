@@ -1,73 +1,383 @@
-// Scans assets/music/ and writes assets/library.auto.json  (no dependencies)
-//
-//  assets/music/<Artist Name>/
-//      photo.jpg|jpeg|png|webp        (artist photo)
-//      artist.json                    (optional: {"name":"..","description":".."})
-//      singles/Song Name.mp3          (+ optional Song Name.jpg as its cover)
-//      albums/<Album Name>/cover.jpg  (album cover)
-//      albums/<Album Name>/01 Track.mp3 ...   (sorted by file name)
-//      albums/<Album Name>/tracks.json (optional, overrides the automatic names:
-//                                       {"01 Track.mp3":{"title":"..","artist":".."}})
-//
-// Track names are cleaned automatically: numbers, site tags like (BandMusic) or
-// mahanmusic.net, "Artist - " prefixes and "ft." credits are removed/moved.
-const fs=require("fs"),path=require("path");
-const ROOT=path.join(__dirname,"..","assets"),MUSIC=path.join(ROOT,"music");
-const AUD=/\.(mp3|m4a|ogg|wav|flac)$/i,IMG=/\.(jpe?g|png|webp)$/i;
-const rel=p=>path.relative(ROOT,p).split(path.sep).join("/");
-const ls=d=>fs.existsSync(d)?fs.readdirSync(d,{withFileTypes:true}):[];
-const natural=(a,b)=>a.localeCompare(b,undefined,{numeric:true});
-const read=f=>fs.existsSync(f)?JSON.parse(fs.readFileSync(f,"utf8")):{};
-const findImg=(dir,base)=>{const f=ls(dir).map(e=>e.name).find(n=>IMG.test(n)&&path.parse(n).name.toLowerCase()===base.toLowerCase());return f?rel(path.join(dir,f)):null};
-
-const norm=s=>s.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g,"");
-const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
-const JUNK=/\b(bandmusic|band music|mahan ?music|aria ?music|radio ?javan|download|official|audio|lyrics?|music video|video|hd|hq|\d{2,3} ?kbps|128|192|256|320|www)\b/i;
-
-function parseName(file,artist,numbered,album){
-  let s=file.replace(AUD,"").replace(/_+/g," ");
-  s=s.replace(/[\s\-–_]*\b(?:www\.)?[a-z0-9]+\.(?:com|net|ir|org|info|me|ws|biz|co)\b/gi,"");   // site names
-  s=s.replace(/[\(\[][^\)\]]*[\)\]]/g,m=>JUNK.test(m)?"":m);                                    // (BandMusic) etc.
-  s=s.replace(/[\s\-–]*\b(?:128|192|256|320)\s*(?:kbps)?\s*$/i,"").replace(/\s+/g," ").trim();
-  const num=numbered?/^\d{1,3}(?:\s*[-–)]\s*|\.(?=\D)\s*|\s+)/:/^0\d{1,2}(?:\s*[-–)]\s*|\.(?=\D)\s*|\s+)/;
-  s=s.replace(num,"");                                                                           // track number
-  const feat=[];
-  s=s.replace(/\s*[\(\[]\s*(?:ft|feat|featuring)\b\.?\s*([^\)\]]+)[\)\]]/gi,(_,x)=>{feat.push(x);return ""});
-  s=s.replace(/\s+(?:ft|feat|featuring)\b\.?\s+(.+)$/i,(_,x)=>{feat.push(x);return ""});
-  const na=norm(artist),parts=s.split(/\s*[-–—]\s*/).filter(Boolean);
-  if(parts.length>1){                                                                            // "Artist - Title"
-    const hit=(f)=>parts.findIndex(p=>{const n=norm(p);return n&&f(n)});
-    const ai=[hit(n=>n===na),hit(n=>na.length>3&&n.includes(na))].find(i=>i>=0)??-1;
-    if(ai>=0){
-      const rest=parts.filter((_,i)=>i!==ai),ti=ai===0?rest.length-1:0;
-      s=rest[ti];rest.forEach((p,i)=>{if(i!==ti)feat.push(p)});
+{
+ "artists": [
+  {
+   "name": "Sepehr Khalse",
+   "photo": "IMG_5078.jpeg",
+   "description": "ARTIST",
+   "singles": [
+    {
+     "title": "Fargh Darim",
+     "artist": "Shahin Miri",
+     "cover": "IMG_5068.jpeg",
+     "audio": "Shahin Miri – Fargh Darim.mp3"
     }
+   ],
+   "albums": []
+  },
+  {
+   "name": "Hiphopologist",
+   "photo": "IMG_5079.jpeg",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [
+    {
+     "title": "Bache Mardom",
+     "artist": "Hiphopologist feat. Erfan",
+     "cover": "IMG_5069.jpeg",
+     "audio": "Hiphopologist – Bache Mardom.mp3"
+    }
+   ],
+   "albums": [
+    {
+     "title": "CAPSULE",
+     "cover": "IMG_5073.jpeg",
+     "tracks": [
+      {
+       "title": "Sogand",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "01 Hiphopologist - Sogand.mp3"
+      },
+      {
+       "title": "Misoozam Too Shahr",
+       "artist": "Hiphopologist feat. Sinazza",
+       "audio": "02 Hiphopologist - Misoozam Too Shahr (ft. Sinazza).mp3"
+      },
+      {
+       "title": "Batman",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "03 Hiphopologist - Batman.mp3"
+      },
+      {
+       "title": "7.5.2",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "04 Hiphopologist - 7.5.2.mp3"
+      },
+      {
+       "title": "Ayne",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "05 Hiphopologist - Ayne.mp3"
+      },
+      {
+       "title": "Toxic",
+       "artist": "Hiphopologist feat. Sinazza",
+       "audio": "06 Hiphopologist - Toxic (feat. Sinazza).mp3"
+      },
+      {
+       "title": "GHORS II",
+       "artist": "Hiphopologist feat. Poobon",
+       "audio": "07 Hiphopologist - GHORS II (feat. Poobon).mp3"
+      }
+     ]
+    },
+    {
+     "title": "NOSKHE",
+     "cover": "IMG_5074.jpeg",
+     "tracks": [
+      {
+       "title": "Intro",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "Noskhe (Intro) (BandMusic).mp3"
+      },
+      {
+       "title": "OD",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "OD (BandMusic).mp3"
+      },
+      {
+       "title": "Sadism",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "Sadism [Diis Shayea] (BandMusic).mp3"
+      },
+      {
+       "title": "Norf Norf",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "Norf Norf (BandMusic).mp3"
+      },
+      {
+       "title": "Daryakenar",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "Darya Kenar (BandMusic).mp3"
+      },
+      {
+       "title": "Sheesh",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "Sheesh (BandMusic).mp3"
+      },
+      {
+       "title": "Adams Skit",
+       "artist": "Hiphopologist feat. Shayan Rag",
+       "audio": "Adams Skit (BandMusic).mp3"
+      },
+      {
+       "title": "Dastan",
+       "artist": "Hiphopologist feat. 021Kid",
+       "audio": "Dastan (BandMusic).mp3"
+      },
+      {
+       "title": "Bank",
+       "artist": "Hiphopologist feat. Catchybeatz",
+       "audio": "Bank (BandMusic).mp3"
+      },
+      {
+       "title": "Yallah",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "Yallah (BandMusic).mp3"
+      },
+      {
+       "title": "Traplife",
+       "artist": "Hiphopologist feat. Behzad Leito",
+       "audio": "Traplife (BandMusic).mp3"
+      },
+      {
+       "title": "Diaz Skit",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "Diaz Skit (BandMusic).mp3"
+      },
+      {
+       "title": "DMT",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "DMT (BandMusic).mp3"
+      },
+      {
+       "title": "Bato",
+       "artist": "Hiphopologist feat. Chvrsi, Mahsa Dehdari & Arian Dousti",
+       "audio": "Bato (BandMusic).mp3"
+      },
+      {
+       "title": "Rotation",
+       "artist": "Hiphopologist feat. Sinazza",
+       "audio": "Rotation (BandMusic).mp3"
+      },
+      {
+       "title": "Bache > Bad B",
+       "artist": "Hiphopologist feat. Saeed Dehghan",
+       "audio": "Bache Bad (BandMusic).mp3"
+      },
+      {
+       "title": "Bache",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "Bache (BandMusic).mp3"
+      },
+      {
+       "title": "Shir",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "Shir (BandMusic).mp3"
+      },
+      {
+       "title": "Rie",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "noskhe-19-rie.mp3"
+      },
+      {
+       "title": "RIP",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "RIP (BandMusic).mp3"
+      },
+      {
+       "title": "Roopoosh",
+       "artist": "Hiphopologist & Ashkan Kagan",
+       "audio": "Roopush (BandMusic).mp3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "System Of A Down",
+   "photo": "IMG_5081.jpeg",
+   "description": "ALTERNATIVE METAL BAND",
+   "singles": [
+    {
+     "title": "Chop Suey!",
+     "artist": "System Of A Down",
+     "cover": "chop-suey.jpg",
+     "audio": "chop-suey.mp3"
+    },
+    {
+     "title": "Toxicity",
+     "artist": "System Of A Down",
+     "cover": "toxicity.jpg",
+     "audio": "toxicity.mp3"
+    },
+    {
+     "title": "Lonely Day",
+     "artist": "System Of A Down",
+     "cover": "lonely-day.jpg",
+     "audio": "lonely-day.mp3"
+    }
+   ],
+   "albums": []
+  },
+  {
+   "name": "Sajad Shahi",
+   "photo": "IMG_5080.jpeg",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": [
+    {
+     "title": "TAJ",
+     "cover": "IMG_5072.jpeg",
+     "tracks": [
+      {
+       "title": "SHAH",
+       "artist": "Sajad Shahi feat. Dorcci",
+       "audio": "01 Shah - Sajad Shahi - Dorcci (BandMusic).mp3"
+      },
+      {
+       "title": "Koosh",
+       "artist": "Sajad Shahi feat. Ali Geramy",
+       "audio": "02 Sajad Shahi - Ali Geramy - Koosh (BandMusic).mp3"
+      },
+      {
+       "title": "Ghesse",
+       "artist": "Sajad Shahi",
+       "audio": "03 Gheseh (BandMusic).mp3"
+      },
+      {
+       "title": "Taghas",
+       "artist": "Sajad Shahi",
+       "audio": "04 Sajad Shahi - Taghas (BandMusic).mp3"
+      },
+      {
+       "title": "BALLISTIC",
+       "artist": "Sajad Shahi",
+       "audio": "04 Sajad Shahi - Taghas (BandMusic).mp3"
+      },
+      {
+       "title": "Dige",
+       "artist": "Sajad Shahi feat. Moreshahin",
+       "audio": "06 Sajad Shahi - Dige (BandMusic).mp3"
+      },
+      {
+       "title": "SLEEP MODE",
+       "artist": "Sajad Shahi, Matin Fattahi, Dorcci, Ali Geramy & 6ehtash",
+       "audio": "Sajad Shahi - SLEEP MODE (Ft Matin Fattahi x Dorcci x Ali Geramy).mp3"
+      },
+      {
+       "title": "Samtam",
+       "artist": "Sajad Shahi",
+       "audio": "Sajad Shahi-Samtam-mahanmusic.net.mp3"
+      },
+      {
+       "title": "DEEV",
+       "artist": "Sajad Shahi feat. 6ehtash",
+       "audio": "09 Sajad Shahi - DEEV (BandMusic).mp3"
+      },
+      {
+       "title": "TAJ (Outro)",
+       "artist": "Sajad Shahi & Ali Janak",
+       "audio": "10 Sajad Shahi - TAJ (BandMusic).mp3"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Hayedeh",
+   "description": "LEGENDARY PERSIAN SINGER",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Googoosh",
+   "description": "ICONIC PERSIAN POP SINGER",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Mazdi",
+   "description": "ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Siavash Ghomayshi",
+   "description": "PERSIAN POP SINGER-SONGWRITER",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Ebi",
+   "description": "PERSIAN POP SINGER",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Vinak",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "TM Bax",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "TJ",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Hichkas",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Yas",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Mehrad Hidden",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Zedbazi",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Sadegh",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Ho3ein",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Dariush",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Sinazza",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Behzad Leito",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
+  },
+  {
+   "name": "Amir Tataloo",
+   "description": "IRANIAN HIP-HOP ARTIST",
+   "singles": [],
+   "albums": []
   }
-  if(album){const r=new RegExp("^"+esc(album)+"\\s*[-–:]?\\s*","i"),t=s.replace(r,"");if(t)s=t.replace(num,"").replace(/^\((.*)\)$/,"$1")}
-  if(!/\s/.test(s)&&s===s.toLowerCase())s=s.split(/[-_]+/).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
-  s=s.replace(/\s+/g," ").replace(/^[-–\s]+|[-–\s]+$/g,"")||file.replace(AUD,"");
-  const f=[...new Set(feat.join(", ").replace(/\s+x\s+/gi,", ").split(/\s*,\s*|\s*&\s*/).map(x=>x.trim()).filter(x=>x&&norm(x)!==na))];
-  return{title:s,artist:f.length?artist+" feat. "+f.join(", "):artist};
+ ]
 }
-
-function main(){
-  const artists=[];
-  for(const d of ls(MUSIC).filter(e=>e.isDirectory()).sort((a,b)=>natural(a.name,b.name))){
-    const dir=path.join(MUSIC,d.name),meta=read(path.join(dir,"artist.json"));
-    const name=meta.name||d.name;
-    const singles=ls(path.join(dir,"singles")).map(e=>e.name).filter(n=>AUD.test(n)).sort(natural).map(n=>{
-      const p=parseName(n,name,false);
-      return{title:p.title,artist:p.artist,cover:findImg(path.join(dir,"singles"),path.parse(n).name),audio:rel(path.join(dir,"singles",n))}});
-    const albums=ls(path.join(dir,"albums")).filter(e=>e.isDirectory()).sort((a,b)=>natural(a.name,b.name)).map(a=>{
-      const ad=path.join(dir,"albums",a.name),tm=read(path.join(ad,"tracks.json"));
-      return{title:a.name,cover:findImg(ad,"cover"),tracks:ls(ad).map(e=>e.name).filter(n=>AUD.test(n)).sort(natural).map(n=>{
-        const p=parseName(n,name,true,a.name);
-        return{title:(tm[n]&&tm[n].title)||p.title,artist:(tm[n]&&tm[n].artist)||p.artist,audio:rel(path.join(ad,n))}})};
-    });
-    artists.push({name,photo:findImg(dir,"photo"),description:meta.description||"ARTIST",singles,albums});
-  }
-  fs.writeFileSync(path.join(ROOT,"library.auto.json"),JSON.stringify({artists},null,1));
-  console.log("library.auto.json:",artists.length,"artists");
-}
-if(require.main===module)main();
-module.exports={parseName};
